@@ -3,51 +3,39 @@ use bevy::prelude::*;
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
-        .add_plugin(HandyPlugin)
+        .add_startup_system(setup)
+        .add_system(sprite_movement)
         .run();
 }
 
-fn main_old() {
-    App::new()
-        .add_plugins(DefaultPlugins)
-        .add_startup_system(add_people)
-        .add_system(hello_world)
-        .add_system(greet_people)
-        .run();
-}
-
-fn hello_world() {
-    println!("hello world!");
-}
-
-// Create some components
 #[derive(Component)]
-struct Person;
-
-#[derive(Component)]
-struct Name(String);
-
-// Spawn those components
-fn add_people(mut commands: Commands) {
-    commands.spawn().insert(Person).insert(Name("Elaina Proctor".to_string()));
-    commands.spawn().insert(Person).insert(Name("Joe Mama".to_string()));
-    commands.spawn().insert(Person).insert(Name("Big Johnny".to_string()));
+enum Direction {
+    Up,
+    Down,
 }
 
-// Manipulate those components
-fn greet_people(query: Query<&Name, With<Person>>) {
-    for name in query.iter() {
-        println!("Goodday {}!", name.0);
-    }
+fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
+    commands.spawn_bundle(OrthographicCameraBundle::new_2d());
+    commands
+        .spawn_bundle(SpriteBundle {
+            texture: asset_server.load("img/melvin.png"),
+            transform: Transform::from_xyz(100., 0., 0.),
+            ..default()
+        })
+        .insert(Direction::Up);
 }
 
-// Create a plugin
-pub struct HandyPlugin;
+fn sprite_movement(time: Res<Time>, mut sprite_position: Query<(&mut Direction, &mut Transform)>) {
+    for (mut logo, mut transform) in sprite_position.iter_mut() {
+        match *logo {
+            Direction::Up => transform.translation.y += 150. * time.delta_seconds(),
+            Direction::Down => transform.translation.y -= 150. * time.delta_seconds(),
+        }
 
-impl Plugin for HandyPlugin {
-    fn build(&self, app: &mut App) {
-        app.add_startup_system(add_people)
-            .add_system(hello_world)
-            .add_system(greet_people);
+        if transform.translation.y > 200. {
+            *logo = Direction::Down;
+        } else if transform.translation.y < -200. {
+            *logo = Direction::Up;
+        }
     }
 }
