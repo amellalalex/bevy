@@ -1,17 +1,30 @@
 use bevy::prelude::*;
 
+// Settings
+const PLAYER_MOVE_FORCE: f32 = 10.;
+
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
         .add_startup_system(setup)
-        .add_system(sprite_movement)
         .run();
 }
 
 #[derive(Component)]
-enum Direction {
-    Up,
-    Down,
+struct Speed {
+    vx: f32,
+    vy: f32,
+}
+
+#[derive(Component)]
+struct Physics {
+    speed: Speed,
+    mass: f32,
+}
+
+#[derive(Component)]
+struct Player {
+    physics: Physics,
 }
 
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
@@ -22,20 +35,17 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             transform: Transform::from_xyz(100., 0., 0.),
             ..default()
         })
-        .insert(Direction::Up);
+        .insert(Physics {
+            speed: Speed { vx: 0., vy: 0. },
+            mass: 1.,
+        });
 }
 
-fn sprite_movement(time: Res<Time>, mut sprite_position: Query<(&mut Direction, &mut Transform)>) {
-    for (mut logo, mut transform) in sprite_position.iter_mut() {
-        match *logo {
-            Direction::Up => transform.translation.y += 150. * time.delta_seconds(),
-            Direction::Down => transform.translation.y -= 150. * time.delta_seconds(),
-        }
-
-        if transform.translation.y > 200. {
-            *logo = Direction::Down;
-        } else if transform.translation.y < -200. {
-            *logo = Direction::Up;
-        }
+fn handle_physics(time: Res<Time>, mut query: Query<(&mut Physics, &mut Transform)>) {
+    for (mut physics, mut transform) in query.iter_mut() {
+        transform.translation.x += physics.speed.vx * time.delta_seconds();
+        transform.translation.y += physics.speed.vy * time.delta_seconds();
     }
 }
+
+fn handle_input(keyboard: Res<Input<KeyCode>>, mut query: Query<&mut Physics>) {}
